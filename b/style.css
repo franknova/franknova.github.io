@@ -116,8 +116,8 @@ header h1 {
     flex-wrap: wrap;
     gap: 6px;
     align-content: flex-start;
-    transition: all 0.3s ease;
 }
+
 
 .book-list-item {
     width: calc(20% - 6px);
@@ -184,7 +184,7 @@ header h1 {
     max-height: 800px;
     overflow-y: auto;
     z-index: 100;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .search-result-item {
@@ -390,8 +390,8 @@ header h1 {
     background: var(--bg-tertiary);
     overflow-y: auto;
     height: 100%;
-    transition: all 0.3s ease;
 }
+
 
 .notes-header {
     padding: 12px 15px;
@@ -453,6 +453,63 @@ header h1 {
     font-size: 0.9rem;
     line-height: 1.6;
     color: var(--text-primary);
+}
+
+.note-content strong {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.note-content em {
+    font-style: italic;
+}
+
+.note-content del {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.note-content code {
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+}
+
+.note-content a {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.note-content a:hover {
+    color: var(--accent-hover);
+}
+
+.note-content ul,
+.note-content ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+.note-content ul {
+    list-style-type: disc;
+}
+
+.note-content ol {
+    list-style-type: decimal;
+}
+
+.note-content li {
+    margin: 4px 0;
+    line-height: 1.6;
+}
+
+.note-content ul ul,
+.note-content ol ol,
+.note-content ul ol,
+.note-content ol ul {
+    margin: 4px 0;
 }
 
 .note-content p {

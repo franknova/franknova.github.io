@@ -14,6 +14,7 @@ var state = {
     searchResults: [],
     showBookList: localStorage.getItem('bible_show_booklist') !== 'false',
     showNotesPanel: localStorage.getItem('bible_show_notes') !== 'false',
+    isNarrowScreen: window.innerWidth < 960,
 
     dispatch: function (action, args) {
         state[action].apply(state, args || [])
@@ -33,6 +34,28 @@ var state = {
     init: function () {
         state.loadNotes()
         state.restoreState()
+        state.handleResize()
+        window.addEventListener('resize', state.handleResize)
+        
+        // 窄屏模式下，首次加载时默认隐藏所有侧边栏
+        if (state.isNarrowScreen) {
+            state.showBookList = false
+            state.showNotesPanel = false
+        }
+        
+        m.redraw()
+    },
+
+    handleResize: function () {
+        const wasNarrow = state.isNarrowScreen
+        state.isNarrowScreen = window.innerWidth < 960
+        
+        // 切换到窄屏时，如果两个侧边栏都打开，关闭笔记面板
+        if (!wasNarrow && state.isNarrowScreen) {
+            if (state.showBookList && state.showNotesPanel) {
+                state.showNotesPanel = false
+            }
+        }
         m.redraw()
     },
 
@@ -150,8 +173,8 @@ var state = {
     saveCurrentNote: function (text) {
         if (!state.selectedVerse) return
         const key = `${state.currentBook}_${state.currentChapter}_${state.selectedVerse}`
-        if (text.trim()) {
-            state.notes[key] = text.trim()
+        if (text) {
+            state.notes[key] = text
         } else {
             delete state.notes[key]
         }
@@ -231,15 +254,23 @@ var state = {
 
     toggleBookList: function () {
         state.showBookList = !state.showBookList
+        // 窄屏模式下，打开书卷列表时关闭笔记面板
+        if (state.isNarrowScreen && state.showBookList && state.showNotesPanel) {
+            state.showNotesPanel = false
+        }
     },
 
     toggleNotesPanel: function () {
         state.showNotesPanel = !state.showNotesPanel
+        // 窄屏模式下，打开笔记面板时关闭书卷列表
+        if (state.isNarrowScreen && state.showNotesPanel && state.showBookList) {
+            state.showBookList = false
+        }
     },
 
     search: function (query) {
         state.searchQuery = query
-        if (!query.trim()) {
+        if (!query) {
             state.searchResults = []
             return
         }
@@ -275,6 +306,16 @@ var state = {
         state.searchQuery = ''
         state.searchResults = []
         state.saveState()
+    },
+
+    renderSimpleMarkdown: function (text) {
+        if (!text) return ''
+        
+        // 使用 marked.parse 新 API
+        return marked.parse(text, {
+            breaks: true,  // 支持换行
+            gfm: true      // 启用 GitHub Flavored Markdown
+        })
     }
 }
 
@@ -369,12 +410,11 @@ var ChapterNav = {
             m('button.toggle-btn', {
                 onclick: function () { state.dispatch('toggleBookList') },
                 title: state.showBookList ? '隐藏书卷列表' : '显示书卷列表'
-            }, state.showBookList ? '◀' : '▶'),
-            m('button', { onclick: function () { state.dispatch('prevChapter') } }, '< 上一章'),
-            m('button', { onclick: function () { state.dispatch('nextChapter') } }, '下一章 >'),
-            m('span.chapter-info', `${bookName} 第 ${state.currentChapter} 章 / 共 ${maxChapter} 章`),
+            }, '📖'),
+            m('button', { onclick: function () { state.dispatch('prevChapter') } }, '◀'),
+            m('button', { onclick: function () { state.dispatch('nextChapter') } }, '▶'),
+            m('span.chapter-info', `${bookName} ${state.currentChapter}/${maxChapter}`),
             m('div.chapter-input-group', [
-                m('span', '跳至:'),
                 m('input[type=number][min=1]', {
                     id: 'chapterInput',
                     max: maxChapter,
@@ -388,24 +428,12 @@ var ChapterNav = {
                         }
                     }
                 }),
-                m('span', '章 '),
-                m('button', {
-                    onclick: function () {
-                        const input = document.getElementById('chapterInput')
-                        const val = parseInt(input.value)
-                        if (val >= 1 && val <= maxChapter) {
-                            state.dispatch('jumpToChapter', [val])
-                            input.value = ''
-                        } else {
-                            alert(`请输入 1-${maxChapter} 之间的数字`)
-                        }
-                    }
-                }, '跳转')
+                m('span', '章 ')
             ]),
             m('button.toggle-btn', {
                 onclick: function () { state.dispatch('toggleNotesPanel') },
                 title: state.showNotesPanel ? '隐藏笔记栏' : '显示笔记栏'
-            }, state.showNotesPanel ? '▶' : '◀')
+            }, '📝')
         ])
     }
 }
@@ -437,20 +465,22 @@ var NotesPanel = {
 
         return m('div.notes-panel', [
             m('div.notes-header', [
-                '📝 笔记记录',
-                m('button.export-btn', {
-                    style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#5cb85c;color:white;border:none;border-radius:3px;cursor:pointer;',
-                    onclick: function () { state.dispatch('exportNotes') }
-                }, '导出'),
-                m('button.import-btn', {
-                    style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#f0ad4e;color:white;border:none;border-radius:3px;cursor:pointer;margin-right:8px;',
-                    onclick: function () { document.getElementById('importFile').click() }
-                }, '导入'),
-                m('input#importFile.import-file', {
-                    type: 'file',
-                    accept: '.json',
-                    onchange: function (e) { state.dispatch('importNotes', [e.target.files[0]]) }
-                })
+                m('span.notes-title', '笔记记录'),
+                m('div.notes-actions', [
+                    m('button.export-btn', {
+                        style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#5cb85c;color:white;border:none;border-radius:3px;cursor:pointer;',
+                        onclick: function () { state.dispatch('exportNotes') }
+                    }, '导出'),
+                    m('button.import-btn', {
+                        style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#f0ad4e;color:white;border:none;border-radius:3px;cursor:pointer;margin-right:8px;',
+                        onclick: function () { document.getElementById('importFile').click() }
+                    }, '导入'),
+                    m('input#importFile.import-file', {
+                        type: 'file',
+                        accept: '.json',
+                        onchange: function (e) { state.dispatch('importNotes', [e.target.files[0]]) }
+                    })
+                ])
             ]),
             m('div.current-ref', currentRef),
             m('div.notes-list', [
@@ -495,7 +525,7 @@ var NotesPanel = {
                                     }
                                 }, '删除')
                             ]),
-                            m('div.note-content', text)
+                            m('div.note-content', m.trust(state.renderSimpleMarkdown(text)))
                         ])
                     })
                 ] : null,
@@ -513,20 +543,16 @@ var BibleApp = {
         document.documentElement.setAttribute('data-theme', state.theme)
     },
     view: function () {
-        return [
-            m('div.main-container', [
-                state.showBookList ? m(BookList) : null,
-                m('div.bible-panel', {
-                    style: { flex: state.showBookList && state.showNotesPanel ? '1' : (state.showBookList || state.showNotesPanel ? '1' : '1') }
-                }, [
-                    m('div.content-area', [
-                        m(ChapterNav),
-                        m(VersesContainer)
-                    ])
-                ]),
-                state.showNotesPanel ? m(NotesPanel) : null
-            ])
-        ]
+        return m('div.main-container', [
+            state.showBookList ? m(BookList) : null,
+            m('div.bible-panel', [
+                m('div.content-area', [
+                    m(ChapterNav),
+                    m(VersesContainer)
+                ])
+            ]),
+            state.showNotesPanel ? m(NotesPanel) : null
+        ])
     }
 }
 
