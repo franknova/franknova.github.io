@@ -118,6 +118,53 @@ header h1 {
     align-content: flex-start;
 }
 
+.everyday-section {
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.everyday-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.everyday-date {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.everyday-nav-btn {
+    padding: 4px 10px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.everyday-nav-btn:hover {
+    background: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.everyday-content {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    word-wrap: break-word;
+}
+
 
 .book-list-item {
     width: calc(20% - 6px);
@@ -399,6 +446,91 @@ header h1 {
     color: var(--text-primary);
     font-weight: bold;
     font-size: 0.95rem;
+}
+
+.note-search-container {
+    display: flex;
+    gap: 5px;
+    padding: 8px 15px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.note-search-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.note-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.note-search-clear {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.note-search-clear:hover {
+    background: var(--verse-hover);
+    color: var(--text-primary);
+}
+
+.note-search-results {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 10px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+}
+
+.note-search-result-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.note-search-result-item:last-child {
+    border-bottom: none;
+}
+
+.note-search-result-item:hover {
+    background: var(--verse-hover);
+}
+
+.note-search-result-ref {
+    display: block;
+    font-weight: bold;
+    color: var(--accent-color);
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.note-search-result-text {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.note-search-no-result {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
 }
 
 .current-ref {

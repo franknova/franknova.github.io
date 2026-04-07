@@ -12,6 +12,8 @@ var state = {
     theme: localStorage.getItem('bible_theme') || 'light',
     searchQuery: '',
     searchResults: [],
+    noteSearchQuery: '',
+    everydayDate: null, // 当前显示的每日经文日期
     showBookList: localStorage.getItem('bible_show_booklist') !== 'false',
     showNotesPanel: localStorage.getItem('bible_show_notes') !== 'false',
     isNarrowScreen: window.innerWidth < 960,
@@ -36,21 +38,21 @@ var state = {
         state.restoreState()
         state.handleResize()
         window.addEventListener('resize', state.handleResize)
-        
-        // 窄屏模式下，首次加载时默认隐藏所有侧边栏
         if (state.isNarrowScreen) {
             state.showBookList = false
             state.showNotesPanel = false
         }
-        
+        // 初始化每日经文日期为今天
+        if (!state.everydayDate) {
+            const today = new Date()
+            state.everydayDate = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`
+        }
         m.redraw()
     },
 
     handleResize: function () {
         const wasNarrow = state.isNarrowScreen
         state.isNarrowScreen = window.innerWidth < 960
-        
-        // 切换到窄屏时，如果两个侧边栏都打开，关闭笔记面板
         if (!wasNarrow && state.isNarrowScreen) {
             if (state.showBookList && state.showNotesPanel) {
                 state.showNotesPanel = false
@@ -308,14 +310,88 @@ var state = {
         state.saveState()
     },
 
+    searchNotes: function (query) {
+        state.noteSearchQuery = query
+    },
+
+    getFilteredNotes: function () {
+        if (!state.noteSearchQuery) {
+            return state.getNotesForCurrentChapter()
+        }
+
+        const queryLower = state.noteSearchQuery.toLowerCase()
+        return Object.entries(state.notes)
+            .filter(([key, text]) => {
+                // 搜索笔记内容
+                if (text.toLowerCase().includes(queryLower)) {
+                    return true
+                }
+                // 也可以搜索引用（书卷名+章节+节）
+                const parts = key.split('_')
+                const bookNum = parseInt(parts[0])
+                const chapter = parts[1]
+                const verse = parts[2]
+                const bookName = BOOK_NAMES[bookNum]
+                const ref = `${bookName} ${chapter}:${verse}`
+                return ref.toLowerCase().includes(queryLower)
+            })
+            .sort((a, b) => {
+                const aParts = a[0].split('_')
+                const bParts = b[0].split('_')
+                const aVerse = parseInt(aParts[2])
+                const bVerse = parseInt(bParts[2])
+                return aVerse - bVerse
+            })
+    },
+
     renderSimpleMarkdown: function (text) {
         if (!text) return ''
-        
+
         // 使用 marked.parse 新 API
         return marked.parse(text, {
             breaks: true,  // 支持换行
             gfm: true      // 启用 GitHub Flavored Markdown
         })
+    },
+
+    getEverydayScriptures: function () {
+        if (!EVERYDAY || !state.everydayDate) return null
+        return EVERYDAY[state.everydayDate] || null
+    },
+
+    prevDay: function () {
+        if (!state.everydayDate) return
+        const parts = state.everydayDate.split('/')
+        const year = parseInt(parts[0])
+        const month = parseInt(parts[1])
+        const day = parseInt(parts[2])
+
+        const date = new Date(year, month - 1, day)
+        date.setDate(date.getDate() - 1)
+
+        state.everydayDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+    },
+
+    nextDay: function () {
+        if (!state.everydayDate) return
+        const parts = state.everydayDate.split('/')
+        const year = parseInt(parts[0])
+        const month = parseInt(parts[1])
+        const day = parseInt(parts[2])
+
+        const date = new Date(year, month - 1, day)
+        date.setDate(date.getDate() + 1)
+
+        state.everydayDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+    },
+
+    formatEverydayDate: function () {
+        if (!state.everydayDate) return ''
+        const parts = state.everydayDate.split('/')
+        const year = parts[0]
+        const month = parts[1].padStart(2, '0')
+        const day = parts[2].padStart(2, '0')
+        return `${year}-${month}-${day}`
     }
 }
 
@@ -372,6 +448,7 @@ var BookList = {
     view: function () {
         const data = state.bibleData[state.currentVersion]
         const books = Object.keys(data.books).map(Number).sort((a, b) => a - b)
+        const everydayScriptures = state.getEverydayScriptures()
 
         return m('div.book-list', [
             m('div.version-buttons', [
@@ -386,6 +463,22 @@ var BookList = {
                 m('button.theme-btn', {
                     onclick: function () { state.dispatch('toggleTheme') }
                 }, state.theme === 'light' ? '🌙' : '☀️')
+            ]),
+            m('div.everyday-section', [
+                m('div.everyday-header', [
+                    m('button.everyday-nav-btn', {
+                        onclick: function () { state.dispatch('prevDay') },
+                        title: '前一天'
+                    }, '◀'),
+                    m('span.everyday-date', state.formatEverydayDate()),
+                    m('button.everyday-nav-btn', {
+                        onclick: function () { state.dispatch('nextDay') },
+                        title: '后一天'
+                    }, '▶')
+                ]),
+                everydayScriptures ?
+                    m('div.everyday-content', everydayScriptures) :
+                    m('div.everyday-content', { style: 'color:#999;text-align:center;padding:10px;' }, '暂无经文')
             ]),
             m(SearchBar),
             books.map(bookNum => {
@@ -461,11 +554,11 @@ var NotesPanel = {
     view: function () {
         const currentRef = state.getCurrentRef()
         const currentNote = state.getNotesForCurrentVerse()
-        const chapterNotes = state.getNotesForCurrentChapter()
+        const filteredNotes = state.getFilteredNotes()
 
         return m('div.notes-panel', [
             m('div.notes-header', [
-                m('span.notes-title', '笔记记录'),
+                m('span.notes-title', '📝 笔记记录'),
                 m('div.notes-actions', [
                     m('button.export-btn', {
                         style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#5cb85c;color:white;border:none;border-radius:3px;cursor:pointer;',
@@ -482,6 +575,43 @@ var NotesPanel = {
                     })
                 ])
             ]),
+            m('div.note-search-container', [
+                m('input.note-search-input', {
+                    type: 'text',
+                    placeholder: '搜索笔记...',
+                    value: state.noteSearchQuery,
+                    oninput: function (e) { state.dispatch('searchNotes', [e.target.value]) }
+                }),
+                state.noteSearchQuery ? m('button.note-search-clear', {
+                    onclick: function () { state.dispatch('searchNotes', ['']) }
+                }, '×') : null
+            ]),
+            // 搜索结果区域（独立显示）
+            state.noteSearchQuery ? m('div.note-search-results', [
+                filteredNotes.length > 0 ?
+                    filteredNotes.map(([key, text]) => {
+                        const parts = key.split('_')
+                        const bookNum = parseInt(parts[0])
+                        const chapter = parts[1]
+                        const verse = parseInt(parts[2])
+                        const bookName = BOOK_NAMES[bookNum]
+                        const ref = `${bookName} ${chapter}:${verse}`
+
+                        return m('div.note-search-result-item', {
+                            onclick: function () {
+                                state.currentBook = bookNum
+                                state.currentChapter = parseInt(chapter)
+                                state.selectedVerse = verse
+                                state.saveState()
+                                m.redraw()
+                            }
+                        }, [
+                            m('span.note-search-result-ref', ref),
+                            m('span.note-search-result-text', text.substring(0, 100) + (text.length > 100 ? '...' : ''))
+                        ])
+                    }) :
+                    m('div.note-search-no-result', '没有找到匹配的笔记')
+            ]) : null,
             m('div.current-ref', currentRef),
             m('div.notes-list', [
                 state.selectedVerse ? m('div.note-item', [
@@ -502,12 +632,13 @@ var NotesPanel = {
                     })
                 ]) : null,
 
-                chapterNotes.length > 0 ? [
+                // 只在没有搜索时才显示本章笔记
+                !state.noteSearchQuery && filteredNotes.length > 0 ? [
                     state.selectedVerse ? m('div', {
                         style: 'margin:15px 0;border-top:1px solid #ddd;padding-top:15px;font-size:0.85rem;color:#666;'
                     }, '本章笔记') : null,
 
-                    chapterNotes.map(([key, text]) => {
+                    filteredNotes.map(([key, text]) => {
                         const parts = key.split('_')
                         const verse = parseInt(parts[2])
                         const bookName = state.getCurrentBookName()
@@ -530,7 +661,7 @@ var NotesPanel = {
                     })
                 ] : null,
 
-                !state.selectedVerse && chapterNotes.length === 0 ?
+                !state.selectedVerse && filteredNotes.length === 0 && !state.noteSearchQuery ?
                     m('p', { style: 'color:#999;text-align:center;padding:20px;' }, '点击经文添加/编辑笔记') : null
             ])
         ])
