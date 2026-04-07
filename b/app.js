@@ -462,7 +462,11 @@ var BookList = {
                 }, 'NIV'),
                 m('button.theme-btn', {
                     onclick: function () { state.dispatch('toggleTheme') }
-                }, state.theme === 'light' ? '🌙' : '☀️')
+                }, state.theme === 'light' ? '🌙' : '☀️'),
+                m('button.close-sidebar-btn', {
+                    onclick: function () { state.dispatch('toggleBookList') },
+                    title: '隐藏书卷列表'
+                }, '×')
             ]),
             m('div.everyday-section', [
                 m('div.everyday-header', [
@@ -560,14 +564,16 @@ var NotesPanel = {
             m('div.notes-header', [
                 m('span.notes-title', '📝 笔记记录'),
                 m('div.notes-actions', [
-                    m('button.export-btn', {
-                        style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#5cb85c;color:white;border:none;border-radius:3px;cursor:pointer;',
+                    m('button.version-btn', {
                         onclick: function () { state.dispatch('exportNotes') }
                     }, '导出'),
-                    m('button.import-btn', {
-                        style: 'float:right;padding:3px 10px;font-size:0.75rem;background:#f0ad4e;color:white;border:none;border-radius:3px;cursor:pointer;margin-right:8px;',
+                    m('button.version-btn', {
                         onclick: function () { document.getElementById('importFile').click() }
                     }, '导入'),
+                    m('button.close-sidebar-btn', {
+                        onclick: function () { state.dispatch('toggleNotesPanel') },
+                        title: '隐藏笔记栏'
+                    }, '×'),
                     m('input#importFile.import-file', {
                         type: 'file',
                         accept: '.json',
@@ -616,14 +622,7 @@ var NotesPanel = {
             m('div.notes-list', [
                 state.selectedVerse ? m('div.note-item', [
                     m('div.note-ref', [
-                        m('span', currentRef),
-                        m('span.delete-note', {
-                            onclick: function (e) {
-                                e.stopPropagation()
-                                const key = `${state.currentBook}_${state.currentChapter}_${state.selectedVerse}`
-                                state.dispatch('deleteNote', [key])
-                            }
-                        }, '删除')
+                        m('span', currentRef)
                     ]),
                     m('textarea.note-edit', {
                         placeholder: '在此输入笔记... (支持 Markdown)',
@@ -648,13 +647,7 @@ var NotesPanel = {
                             onclick: function () { state.dispatch('selectVerse', [verse]) }
                         }, [
                             m('div.note-ref', [
-                                m('span', `${bookName} ${state.currentChapter}:${verse}`),
-                                m('span.delete-note', {
-                                    onclick: function (e) {
-                                        e.stopPropagation()
-                                        state.dispatch('deleteNote', [key])
-                                    }
-                                }, '删除')
+                                m('span', `${bookName} ${state.currentChapter}:${verse}`)
                             ]),
                             m('div.note-content', m.trust(state.renderSimpleMarkdown(text)))
                         ])
