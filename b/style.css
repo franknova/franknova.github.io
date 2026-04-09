@@ -365,11 +365,20 @@ header h1 {
 .chapter-input-group input {
     width: 60px;
     padding: 5px;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: 4px;
     text-align: center;
     background: var(--bg-primary);
     color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.chapter-input-group input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
 .chapter-input-group button {

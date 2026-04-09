@@ -134,6 +134,14 @@ var state = {
         state.selectedVerse = 1
         state.saveState()
         m.redraw()
+        // 聚焦到章节输入框
+        setTimeout(function () {
+            const input = document.getElementById('chapterInput')
+            if (input) {
+                input.focus()
+                input.select()
+            }
+        }, 50)
     },
 
     prevChapter: function () {
@@ -145,6 +153,15 @@ var state = {
         }
         state.selectedVerse = 1
         state.saveState()
+        m.redraw()
+        // 聚焦到章节输入框
+        setTimeout(function () {
+            const input = document.getElementById('chapterInput')
+            if (input) {
+                input.focus()
+                input.select()
+            }
+        }, 50)
     },
 
     nextChapter: function () {
@@ -157,6 +174,15 @@ var state = {
         }
         state.selectedVerse = 1
         state.saveState()
+        m.redraw()
+        // 聚焦到章节输入框
+        setTimeout(function () {
+            const input = document.getElementById('chapterInput')
+            if (input) {
+                input.focus()
+                input.select()
+            }
+        }, 50)
     },
 
     jumpToChapter: function (chapter) {
@@ -165,6 +191,7 @@ var state = {
             state.currentChapter = chapter
             state.selectedVerse = 1
             state.saveState()
+            m.redraw()
         }
     },
 
@@ -305,9 +332,9 @@ var state = {
         state.currentBook = result.book
         state.currentChapter = result.chapter
         state.selectedVerse = result.verse
-        state.searchQuery = ''
-        state.searchResults = []
+        // 不清空搜索内容和结果，保留搜索状态
         state.saveState()
+        m.redraw()
     },
 
     searchNotes: function (query) {
@@ -510,23 +537,35 @@ var ChapterNav = {
             }, '📖'),
             m('button', { onclick: function () { state.dispatch('prevChapter') } }, '◀'),
             m('button', { onclick: function () { state.dispatch('nextChapter') } }, '▶'),
-            m('span.chapter-info', `${bookName} ${state.currentChapter}/${maxChapter}`),
             m('div.chapter-input-group', [
                 m('input[type=number][min=1]', {
                     id: 'chapterInput',
                     max: maxChapter,
+                    value: state.currentChapter,
+                    oninput: function (e) {
+                        const val = parseInt(e.target.value)
+                        if (val >= 1 && val <= maxChapter) {
+                            state.currentChapter = val
+                            state.selectedVerse = 1
+                            state.saveState()
+                        }
+                    },
                     onkeypress: function (e) {
                         if (e.key === 'Enter') {
                             const val = parseInt(e.target.value)
                             if (val >= 1 && val <= maxChapter) {
                                 state.dispatch('jumpToChapter', [val])
-                                e.target.value = ''
+                                e.target.blur()
                             }
                         }
+                    },
+                    onclick: function (e) {
+                        e.target.select()
                     }
                 }),
-                m('span', '章 ')
+                m('span', '/' + maxChapter + '章')
             ]),
+            m('span.chapter-info', `${bookName}`),
             m('button.toggle-btn', {
                 onclick: function () { state.dispatch('toggleNotesPanel') },
                 title: state.showNotesPanel ? '隐藏笔记栏' : '显示笔记栏'
