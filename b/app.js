@@ -325,7 +325,7 @@ var state = {
                 })
             })
         })
-        state.searchResults = results.slice(0, 50)
+        state.searchResults = results//.slice(0, 50)
     },
 
     jumpToSearchResult: function (result) {
